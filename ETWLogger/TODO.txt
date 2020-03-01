@@ -1,0 +1,2 @@
+﻿- Compare network logging with process monitor to increase amount of results
+- NLog too slow to handle writing to file
