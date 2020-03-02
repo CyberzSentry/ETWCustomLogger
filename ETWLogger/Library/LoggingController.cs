@@ -69,9 +69,11 @@ namespace ETWLogger.Library
                     ConfigurationManager.AppSettings["FileRegexString"],
                     ConfigurationManager.AppSettings["NetRegexString"],
                     ConfigurationManager.AppSettings["RegRegexString"],
+                    ConfigurationManager.AppSettings["ProcRegexString"],
                     ConfigurationManager.AppSettings["NotFileRegexString"],
                     ConfigurationManager.AppSettings["NotNetRegexString"],
-                    ConfigurationManager.AppSettings["NotRegRegexString"]
+                    ConfigurationManager.AppSettings["NotRegRegexString"],
+                    ConfigurationManager.AppSettings["NotProcRegexString"]
                     );
 
                 _logger.Info("Seting up network events.");
@@ -230,7 +232,7 @@ namespace ETWLogger.Library
                         formatString = formatString.Replace(key, value);
                     }
                 }
-                if (_filter.FileCheck(formatString))
+                if (_filter.ProcCheck(formatString))
                 {
                     _procLogger.Info(formatString);
                 }
