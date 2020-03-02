@@ -1,2 +1,3 @@
 ﻿- Add configuration of captured events from enum config
 - Add process owner to log lines
+- filter self-loggs (restrain from logging self actions based on process id)
