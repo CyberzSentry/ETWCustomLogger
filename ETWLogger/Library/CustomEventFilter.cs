@@ -13,11 +13,6 @@ namespace ETWLogger.Library
     /// </summary>
     class CustomEventFilter
     {
-        /// <summary>
-        /// Logger used for any necessary information
-        /// </summary>
-        //private static readonly Logger logger = LogManager.GetLogger("GeneralLogger");
-
         #region Regex instances
         private Regex _fileRegex;
 

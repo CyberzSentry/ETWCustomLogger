@@ -33,13 +33,13 @@ namespace ETWLogger.Library
 
         private static readonly Logger _procLogger = LogManager.GetLogger("ETWProcLogger");
 
-        private TraceEventSession _kernelSession;
+        private readonly TraceEventSession _kernelSession;
 
-        private KernelTraceEventParser _kernelParser;
+        private readonly KernelTraceEventParser _kernelParser;
 
-        private Thread _processingThread;
+        private readonly Thread _processingThread;
 
-        private CustomEventFilter _filter;
+        private readonly CustomEventFilter _filter;
 
         public LoggingController()
         {
