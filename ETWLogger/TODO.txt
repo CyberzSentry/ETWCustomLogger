@@ -1,2 +1,2 @@
-﻿- Compare network logging with process monitor to increase amount of results
-- NLog too slow to handle writing to file
+﻿- Add configuration of captured events from enum config
+- Add process owner to log lines
