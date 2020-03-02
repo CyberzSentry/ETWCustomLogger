@@ -1,11 +1,11 @@
 # ETWCustomLogger
 Service capable of logging specific windows events.
 ##Instalation
-Service can be installed with use of the [Install.cmd](./Install.cmd) script runed from the project direcotry with the "i" option.
+Service can be installed with use of the [Install.bat](./ETWLogger/Install.bat) script runed from the project direcotry with the "i" option.
 
->.\Install.cmd i
+>.\Install.bat i
 
 ##Uninstallation 
-Service can be removed with use of the [Install.cmd](./Install.cmd) script runed from the project direcotry with the "u" option.
+Service can be removed with use of the [Install.bat](./ETWLogger/Install.bat) script runed from the project direcotry with the "u" option.
 
->.\Install.cmd u
+>.\Install.bat u
