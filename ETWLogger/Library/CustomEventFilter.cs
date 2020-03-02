@@ -18,17 +18,17 @@ namespace ETWLogger.Library
         /// </summary>
         //private static readonly Logger logger = LogManager.GetLogger("GeneralLogger");
 
-        private Regex FileRegex;
+        private Regex _fileRegex;
 
-        private Regex NetRegex;
+        private Regex _netRegex;
 
-        private Regex RegRegex;
+        private Regex _regRegex;
 
-        private Regex NotFileRegex;
+        private Regex _notFileRegex;
 
-        private Regex NotRegRegex;
+        private Regex _notRegRegex;
 
-        private Regex NotNetRegex;
+        private Regex _notNetRegex;
 
         /// <summary>
         /// Regex string used in file filter method to check if present.
@@ -37,7 +37,7 @@ namespace ETWLogger.Library
         {
             set
             {
-                FileRegex = new Regex(value);
+                _fileRegex = new Regex(value);
             } 
         }
 
@@ -48,7 +48,7 @@ namespace ETWLogger.Library
         {
             set
             {
-                NetRegex = new Regex(value);
+                _netRegex = new Regex(value);
             } 
         }
 
@@ -59,7 +59,7 @@ namespace ETWLogger.Library
         { 
             set 
             {
-                RegRegex = new Regex(value);
+                _regRegex = new Regex(value);
             } 
         }
 
@@ -70,7 +70,7 @@ namespace ETWLogger.Library
         {
             set
             {
-                NotFileRegex = new Regex(value);
+                _notFileRegex = new Regex(value);
             }
         }
 
@@ -81,7 +81,7 @@ namespace ETWLogger.Library
         {
             set
             {
-                NotNetRegex = new Regex(value);
+                _notNetRegex = new Regex(value);
             }
         }
 
@@ -92,7 +92,7 @@ namespace ETWLogger.Library
         {
             set
             {
-                NotRegRegex = new Regex(value);
+                _notRegRegex = new Regex(value);
             }
         }
 
@@ -129,9 +129,9 @@ namespace ETWLogger.Library
         /// <returns>True if message passes filtering, else False</returns>
         public bool RegCheck(string logMessage)
         {
-            if (RegRegex.IsMatch(logMessage) == true)
+            if (_regRegex.IsMatch(logMessage) == true)
             {
-                if(NotRegRegex.IsMatch(logMessage) == false)
+                if(_notRegRegex.IsMatch(logMessage) == false)
                 {
                     return true;
                 }
@@ -153,9 +153,9 @@ namespace ETWLogger.Library
         /// <returns>True if message passes filtering, else False</returns>
         public bool FileCheck(string logMessage)
         {
-            if (FileRegex.IsMatch(logMessage) == true)
+            if (_fileRegex.IsMatch(logMessage) == true)
             {
-                if (NotFileRegex.IsMatch(logMessage) == false)
+                if (_notFileRegex.IsMatch(logMessage) == false)
                 {
                     return true;
                 }
@@ -177,9 +177,9 @@ namespace ETWLogger.Library
         /// <returns>True if message passes filtering, else False</returns>
         public bool NetCheck(string logMessage)
         {
-            if (NetRegex.IsMatch(logMessage) == true)
+            if (_netRegex.IsMatch(logMessage) == true)
             {
-                if (NotNetRegex.IsMatch(logMessage) == false)
+                if (_notNetRegex.IsMatch(logMessage) == false)
                 {
                     return true;
                 }

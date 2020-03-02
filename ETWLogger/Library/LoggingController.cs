@@ -23,25 +23,21 @@ namespace ETWLogger.Library
         /// <summary>
         /// Logger used for any necessary information
         /// </summary>
-        private static readonly Logger logger = LogManager.GetLogger("GeneralLogger");
+        private static readonly Logger _logger = LogManager.GetLogger("GeneralLogger");
 
-        private static readonly Logger fileLogger = LogManager.GetLogger("ETWFileLogger");
+        private static readonly Logger _fileLogger = LogManager.GetLogger("ETWFileLogger");
 
-        private static readonly Logger netLogger = LogManager.GetLogger("ETWNetLogger");
+        private static readonly Logger _netLogger = LogManager.GetLogger("ETWNetLogger");
 
-        private static readonly Logger regLogger = LogManager.GetLogger("ETWRegLogger");
+        private static readonly Logger _regLogger = LogManager.GetLogger("ETWRegLogger");
 
-        private static readonly Logger procLogger = LogManager.GetLogger("ETWProcLogger");
+        private static readonly Logger _procLogger = LogManager.GetLogger("ETWProcLogger");
 
         private TraceEventSession _kernelSession;
 
         private KernelTraceEventParser _kernelParser;
 
         private Thread _processingThread;
-
-        private Thread _eventsLostThread;
-
-        private bool _eventsLostSwitch = true;
 
         private CustomEventFilter _filter;
 
@@ -50,7 +46,7 @@ namespace ETWLogger.Library
             try
             {
 
-                logger.Info("Initialising the ETWEngine Class.");
+                _logger.Info("Initialising the ETWEngine Class.");
                 _kernelSession = new TraceEventSession(KernelTraceEventParser.KernelSessionName, TraceEventSessionOptions.NoRestartOnCreate)
                 {
                     BufferSizeMB = 1024,
@@ -64,28 +60,10 @@ namespace ETWLogger.Library
                     KernelTraceEventParser.Keywords.Process
                     );
 
-                //if (_kernelSession.IsRealTime)
-                //{
-                //    logger.Info("Kernel session is real time");
-                //}
-                //else
-                //{
-                //    logger.Info("Kernel session is NOT real time");
-                //}
-
                 _kernelParser = new KernelTraceEventParser(_kernelSession.Source);
                 _processingThread = new Thread(() => { _kernelSession.Source.Process(); });
                 _processingThread.Priority = ThreadPriority.Highest;
                 _processingThread.IsBackground = true;
-
-                _eventsLostThread = new Thread(() =>
-                {
-                    while (_eventsLostSwitch)
-                    {
-                        Thread.Sleep(10000);
-                        LogLostEvents();
-                    }
-                });
 
                 _filter = new CustomEventFilter(
                     ConfigurationManager.AppSettings["FileRegexString"],
@@ -96,21 +74,21 @@ namespace ETWLogger.Library
                     ConfigurationManager.AppSettings["NotRegRegexString"]
                     );
 
-                logger.Info("Seting up network events.");
+                _logger.Info("Seting up network events.");
                 SetupNetworkEvents();
 
-                logger.Info("Seting up registry events.");
+                _logger.Info("Seting up registry events.");
                 SetupRegistryEvents();
 
-                logger.Info("Seting up file events.");
+                _logger.Info("Seting up file events.");
                 SetupFileEvents();
 
-                logger.Info("Seting up process events.");
+                _logger.Info("Seting up process events.");
                 SetupProcessEvents();
             }
             catch (Exception x)
             {
-                logger.Error(x, "Failed to properly create LoggingController");
+                _logger.Error(x, "Failed to properly create LoggingController");
             }
         }
 
@@ -118,31 +96,30 @@ namespace ETWLogger.Library
         {
             try
             {
-                logger.Info("Starting processing events");
+                _logger.Info("Starting processing events");
                 if (!(TraceEventSession.IsElevated() ?? false))
                 {
-                    logger.Error("Program doesn't have administrative privilege and might not work properly.");
+                    _logger.Error("Program doesn't have administrative privilege and might not work properly.");
                     return;
                 }
                 _processingThread.Start();
-                _eventsLostThread.Start();
             } catch (Exception x)
             {
-                logger.Error(x, "Filed to start processing events.");
+                _logger.Error(x, "Filed to start processing events.");
             }
         }
 
         public void LogLostEvents()
         {
-            logger.Info("Lost " + _kernelSession.EventsLost + " events");
+            _logger.Info("Lost " + _kernelSession.EventsLost + " events");
         }
 
         public void Dispose()
         {
-            _eventsLostSwitch = false;
             _kernelSession.Dispose();
         }
 
+        #region Processing methods
         private void ProcessNetworkEvent(TraceEvent data, string formatString)
         {
             try
@@ -164,12 +141,12 @@ namespace ETWLogger.Library
                 }
                 if (_filter.NetCheck(formatString))
                 {
-                    netLogger.Info(formatString);
+                    _netLogger.Info(formatString);
                 }
             }
             catch(Exception x)
             {
-                logger.Error(x, "Failed to properly log " + data.ProcessName);
+                _logger.Error(x, "Failed to properly log " + data.ProcessName);
             }
         }
 
@@ -195,12 +172,12 @@ namespace ETWLogger.Library
                 if (_filter.RegCheck(formatString))
                 {
                     
-                    regLogger.Info(formatString);
+                    _regLogger.Info(formatString);
                 }
             }
             catch (Exception x)
             {
-                logger.Error(x, "Failed to properly log " + data.ProcessName);
+                _logger.Error(x, "Failed to properly log " + data.ProcessName);
             }
         }
 
@@ -225,12 +202,12 @@ namespace ETWLogger.Library
                 }
                 if (_filter.FileCheck(formatString))
                 {
-                    fileLogger.Info(formatString);
+                    _fileLogger.Info(formatString);
                 }
             }
             catch (Exception x)
             {
-                logger.Error(x, "Failed to properly log " + data.ProcessName);
+                _logger.Error(x, "Failed to properly log " + data.ProcessName);
             }
         }
 
@@ -255,14 +232,15 @@ namespace ETWLogger.Library
                 }
                 if (_filter.FileCheck(formatString))
                 {
-                    procLogger.Info(formatString);
+                    _procLogger.Info(formatString);
                 }
             }
             catch (Exception x)
             {
-                logger.Error(x, "Failed to properly log " + data.ProcessName);
+                _logger.Error(x, "Failed to properly log " + data.ProcessName);
             }
         }
+        #endregion
 
         #region Event setup methods
 
