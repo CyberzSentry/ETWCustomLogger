@@ -145,74 +145,7 @@ namespace ETWLogger.Library
         }
 
         #region Processing methods
-        private void ProcessNetworkEvent(TraceEvent data, string formatString)
-        {
-            try
-            {
-                if (data.ProcessID == _selfProcessId)
-                {
-                    if (_rejectSelf)
-                    {
-                        return;
-                    }
-                }
-                PropertyInfo[] property_infos = data.GetType().GetProperties();
-
-                foreach (var property in property_infos)
-                {
-                    var key = "{" + property.Name + "}";
-                    if (formatString.Contains(key) == true)
-                    {
-                        var value = property.GetValue(data).ToString() ?? "";
-                        formatString = formatString.Replace(key, value);
-                    }
-                }
-                if (_filter.NetCheck(formatString))
-                {
-                    _netLogger.Info(formatString);
-                }
-            }
-            catch(Exception x)
-            {
-                _logger.Error(x, "Failed to properly log " + data.ProcessName);
-            }
-        }
-
-        private void ProcessRegistryEvent(TraceEvent data, string formatString)
-        {
-            try
-            {
-                if (data.ProcessID == _selfProcessId)
-                {
-                    if (_rejectSelf)
-                    {
-                        return;
-                    }
-                }
-                PropertyInfo[] property_infos = data.GetType().GetProperties();
-
-                foreach (var property in property_infos)
-                {
-                    var key = "{" + property.Name + "}";
-                    if (formatString.Contains(key) == true)
-                    {
-                        var value = property.GetValue(data).ToString() ?? "";
-                        formatString = formatString.Replace(key, value);
-                    }
-                }
-                if (_filter.RegCheck(formatString))
-                {
-                    
-                    _regLogger.Info(formatString);
-                }
-            }
-            catch (Exception x)
-            {
-                _logger.Error(x, "Failed to properly log " + data.ProcessName);
-            }
-        }
-
-        private void ProcessFileEvent(TraceEvent data, string formatString)
+        private void ProcessEvent(TraceEvent data, string formatString, Logger logger)
         {
             try
             {
@@ -236,40 +169,7 @@ namespace ETWLogger.Library
                 }
                 if (_filter.FileCheck(formatString))
                 {
-                    _fileLogger.Info(formatString);
-                }
-            }
-            catch (Exception x)
-            {
-                _logger.Error(x, "Failed to properly log " + data.ProcessName);
-            }
-        }
-
-        private void ProcessProcessEvents(TraceEvent data, string formatString)
-        {
-            try
-            {
-                if (data.ProcessID == _selfProcessId)
-                {
-                    if (_rejectSelf)
-                    {
-                        return;
-                    }
-                }
-                PropertyInfo[] property_infos = data.GetType().GetProperties();
-
-                foreach (var property in property_infos)
-                {
-                    var key = "{" + property.Name + "}";
-                    if (formatString.Contains(key) == true)
-                    {
-                        var value = property.GetValue(data).ToString() ?? "";
-                        formatString = formatString.Replace(key, value);
-                    }
-                }
-                if (_filter.ProcCheck(formatString))
-                {
-                    _procLogger.Info(formatString);
+                    logger.Info(formatString);
                 }
             }
             catch (Exception x)
@@ -285,10 +185,10 @@ namespace ETWLogger.Library
         {
             var ProcessTraceData = ConfigurationManager.AppSettings["ProcessTraceData"];
 
-            _kernelParser.ProcessStart += obj => ProcessProcessEvents(obj, ProcessTraceData);
-            //_kernelParser.ProcessStop += obj => ProcessProcessEvents(obj, ProcessTraceData);
-            _kernelParser.ProcessStartGroup += obj => ProcessProcessEvents(obj, ProcessTraceData);
-            _kernelParser.ProcessDCStart += obj => ProcessProcessEvents(obj, ProcessTraceData);
+            _kernelParser.ProcessStart += obj => ProcessEvent(obj, ProcessTraceData, _regLogger);
+            //_kernelParser.ProcessStop += obj => ProcessEvent(obj, ProcessTraceData, _regLogger);
+            _kernelParser.ProcessStartGroup += obj => ProcessEvent(obj, ProcessTraceData, _regLogger);
+            _kernelParser.ProcessDCStart += obj => ProcessEvent(obj, ProcessTraceData, _regLogger);
         }
 
         private void SetupNetworkEvents()
@@ -304,44 +204,44 @@ namespace ETWLogger.Library
             var TcpIpV6SendTraceData = ConfigurationManager.AppSettings["TcpIpV6SendTraceData"];
             var TcpIpV6TraceData = ConfigurationManager.AppSettings["TcpIpV6TraceData"];
 
-            _kernelParser.TcpIpAcceptIPV6 += obj => ProcessNetworkEvent(obj, TcpIpV6ConnectTraceData);
-            _kernelParser.TcpIpAccept += obj => ProcessNetworkEvent(obj, TcpIpConnectTraceData);
+            _kernelParser.TcpIpAcceptIPV6 += obj => ProcessEvent(obj, TcpIpV6ConnectTraceData, _netLogger);
+            _kernelParser.TcpIpAccept += obj => ProcessEvent(obj, TcpIpConnectTraceData, _netLogger);
 
-            _kernelParser.TcpIpConnectIPV6 += obj => ProcessNetworkEvent(obj, TcpIpV6ConnectTraceData);
-            _kernelParser.TcpIpConnect += obj => ProcessNetworkEvent(obj, TcpIpConnectTraceData);
+            _kernelParser.TcpIpConnectIPV6 += obj => ProcessEvent(obj, TcpIpV6ConnectTraceData, _netLogger);
+            _kernelParser.TcpIpConnect += obj => ProcessEvent(obj, TcpIpConnectTraceData, _netLogger);
 
-            _kernelParser.TcpIpDisconnectIPV6 += obj => ProcessNetworkEvent(obj, TcpIpV6TraceData);
-            _kernelParser.TcpIpDisconnect += obj => ProcessNetworkEvent(obj, TcpIpTraceData);
+            _kernelParser.TcpIpDisconnectIPV6 += obj => ProcessEvent(obj, TcpIpV6TraceData, _netLogger);
+            _kernelParser.TcpIpDisconnect += obj => ProcessEvent(obj, TcpIpTraceData, _netLogger);
             
-            _kernelParser.TcpIpSendIPV6 += obj => ProcessNetworkEvent(obj, TcpIpV6SendTraceData);
-            _kernelParser.TcpIpSend += obj => ProcessNetworkEvent(obj, TcpIpSendTraceData);
+            _kernelParser.TcpIpSendIPV6 += obj => ProcessEvent(obj, TcpIpV6SendTraceData, _netLogger);
+            _kernelParser.TcpIpSend += obj => ProcessEvent(obj, TcpIpSendTraceData, _netLogger);
 
-            _kernelParser.TcpIpRecvIPV6 += obj => ProcessNetworkEvent(obj, TcpIpV6TraceData);
-            _kernelParser.TcpIpRecv += obj => ProcessNetworkEvent(obj, TcpIpTraceData);
+            _kernelParser.TcpIpRecvIPV6 += obj => ProcessEvent(obj, TcpIpV6TraceData, _netLogger);
+            _kernelParser.TcpIpRecv += obj => ProcessEvent(obj, TcpIpTraceData, _netLogger);
 
-            _kernelParser.TcpIpTCPCopyIPV6 += obj => ProcessNetworkEvent(obj, TcpIpV6TraceData);
-            _kernelParser.TcpIpTCPCopy += obj => ProcessNetworkEvent(obj, TcpIpTraceData);
+            _kernelParser.TcpIpTCPCopyIPV6 += obj => ProcessEvent(obj, TcpIpV6TraceData, _netLogger);
+            _kernelParser.TcpIpTCPCopy += obj => ProcessEvent(obj, TcpIpTraceData, _netLogger);
 
-            _kernelParser.TcpIpRetransmitIPV6 += obj => ProcessNetworkEvent(obj, TcpIpV6TraceData);
-            _kernelParser.TcpIpRetransmit += obj => ProcessNetworkEvent(obj, TcpIpTraceData);
+            _kernelParser.TcpIpRetransmitIPV6 += obj => ProcessEvent(obj, TcpIpV6TraceData, _netLogger);
+            _kernelParser.TcpIpRetransmit += obj => ProcessEvent(obj, TcpIpTraceData, _netLogger);
 
-            //_kernelParser.TcpIpARPCopy += obj => ProcessNetworkEvent(obj, TcpIpTraceData);
-            //_kernelParser.TcpIpFullACK += obj => ProcessNetworkEvent(obj, TcpIpTraceData);
-            //_kernelParser.TcpIpPartACK += obj => ProcessNetworkEvent(obj, TcpIpTraceData);
-            //_kernelParser.TcpIpDupACK += obj => ProcessNetworkEvent(obj, TcpIpTraceData);
+            //_kernelParser.TcpIpARPCopy += obj => ProcessEvent(obj, TcpIpTraceData, _netLogger);
+            //_kernelParser.TcpIpFullACK += obj => ProcessEvent(obj, TcpIpTraceData, _netLogger);
+            //_kernelParser.TcpIpPartACK += obj => ProcessEvent(obj, TcpIpTraceData, _netLogger);
+            //_kernelParser.TcpIpDupACK += obj => ProcessEvent(obj, TcpIpTraceData, _netLogger);
 
-            _kernelParser.TcpIpReconnectIPV6 += obj => ProcessNetworkEvent(obj, TcpIpV6TraceData);
-            _kernelParser.TcpIpReconnect += obj => ProcessNetworkEvent(obj, TcpIpTraceData);
+            _kernelParser.TcpIpReconnectIPV6 += obj => ProcessEvent(obj, TcpIpV6TraceData, _netLogger);
+            _kernelParser.TcpIpReconnect += obj => ProcessEvent(obj, TcpIpTraceData, _netLogger);
 
-            _kernelParser.TcpIpFail += obj => ProcessNetworkEvent(obj, TcpIpFailTraceData);
+            _kernelParser.TcpIpFail += obj => ProcessEvent(obj, TcpIpFailTraceData, _netLogger);
         
-            _kernelParser.UdpIpSendIPV6 += obj => ProcessNetworkEvent(obj, UpdIpV6TraceData);
-            _kernelParser.UdpIpSend += obj => ProcessNetworkEvent(obj, UdpIpTraceData);
+            _kernelParser.UdpIpSendIPV6 += obj => ProcessEvent(obj, UpdIpV6TraceData, _netLogger);
+            _kernelParser.UdpIpSend += obj => ProcessEvent(obj, UdpIpTraceData, _netLogger);
 
-            _kernelParser.UdpIpRecvIPV6 += obj => ProcessNetworkEvent(obj, UpdIpV6TraceData);
-            _kernelParser.UdpIpRecv += obj => ProcessNetworkEvent(obj, UdpIpTraceData);
+            _kernelParser.UdpIpRecvIPV6 += obj => ProcessEvent(obj, UpdIpV6TraceData, _netLogger);
+            _kernelParser.UdpIpRecv += obj => ProcessEvent(obj, UdpIpTraceData, _netLogger);
 
-            _kernelParser.UdpIpFail += obj => ProcessNetworkEvent(obj, UdpIpFailTraceData);
+            _kernelParser.UdpIpFail += obj => ProcessEvent(obj, UdpIpFailTraceData, _netLogger);
 
         }
 
@@ -349,24 +249,24 @@ namespace ETWLogger.Library
         {
             var RegistryTraceData = ConfigurationManager.AppSettings["RegistryTraceData"];
 
-            _kernelParser.RegistryCreate += obj => ProcessRegistryEvent(obj, RegistryTraceData);
-            _kernelParser.RegistryOpen += obj => ProcessRegistryEvent(obj, RegistryTraceData);
-            _kernelParser.RegistryDelete += obj => ProcessRegistryEvent(obj, RegistryTraceData);
-            _kernelParser.RegistryQuery += obj => ProcessRegistryEvent(obj, RegistryTraceData);
-            _kernelParser.RegistrySetValue += obj => ProcessRegistryEvent(obj, RegistryTraceData);
-            _kernelParser.RegistryDeleteValue += obj => ProcessRegistryEvent(obj, RegistryTraceData);
-            _kernelParser.RegistryQueryValue += obj => ProcessRegistryEvent(obj, RegistryTraceData);
-            _kernelParser.RegistryEnumerateKey += obj => ProcessRegistryEvent(obj, RegistryTraceData);
-            _kernelParser.RegistryQueryMultipleValue += obj => ProcessRegistryEvent(obj, RegistryTraceData);
-            _kernelParser.RegistryEnumerateValueKey += obj => ProcessRegistryEvent(obj, RegistryTraceData);
-            //_kernelParser.RegistryFlush += obj => ProcessRegistryEvent(obj, RegistryTraceData);
-            //_kernelParser.RegistrySetInformation += obj => ProcessRegistryEvent(obj, RegistryTraceData);
-            //_kernelParser.RegistryKCBCreate += obj => ProcessRegistryEvent(obj, RegistryTraceData);
-            //_kernelParser.RegistryKCBDelete += obj => ProcessRegistryEvent(obj, RegistryTraceData);
-            //_kernelParser.RegistryKCBRundownBegin += obj => ProcessRegistryEvent(obj, RegistryTraceData);
-            //_kernelParser.RegistryKCBRundownEnd += obj => ProcessRegistryEvent(obj, RegistryTraceData);
-            //_kernelParser.RegistryVirtualize += obj => ProcessRegistryEvent(obj, RegistryTraceData);
-            //_kernelParser.RegistryClose += obj => ProcessRegistryEvent(obj, RegistryTraceData);
+            _kernelParser.RegistryCreate += obj => ProcessEvent(obj, RegistryTraceData, _regLogger);
+            _kernelParser.RegistryOpen += obj => ProcessEvent(obj, RegistryTraceData, _regLogger);
+            _kernelParser.RegistryDelete += obj => ProcessEvent(obj, RegistryTraceData, _regLogger);
+            _kernelParser.RegistryQuery += obj => ProcessEvent(obj, RegistryTraceData, _regLogger);
+            _kernelParser.RegistrySetValue += obj => ProcessEvent(obj, RegistryTraceData, _regLogger);
+            _kernelParser.RegistryDeleteValue += obj => ProcessEvent(obj, RegistryTraceData, _regLogger);
+            _kernelParser.RegistryQueryValue += obj => ProcessEvent(obj, RegistryTraceData, _regLogger);
+            _kernelParser.RegistryEnumerateKey += obj => ProcessEvent(obj, RegistryTraceData, _regLogger);
+            _kernelParser.RegistryQueryMultipleValue += obj => ProcessEvent(obj, RegistryTraceData, _regLogger);
+            _kernelParser.RegistryEnumerateValueKey += obj => ProcessEvent(obj, RegistryTraceData, _regLogger);
+            //_kernelParser.RegistryFlush += obj => ProcessEvent(obj, RegistryTraceData, _regLogger);
+            //_kernelParser.RegistrySetInformation += obj => ProcessEvent(obj, RegistryTraceData, _regLogger);
+            //_kernelParser.RegistryKCBCreate += obj => ProcessEvent(obj, RegistryTraceData, _regLogger);
+            //_kernelParser.RegistryKCBDelete += obj => ProcessEvent(obj, RegistryTraceData, _regLogger);
+            //_kernelParser.RegistryKCBRundownBegin += obj => ProcessEvent(obj, RegistryTraceData, _regLogger);
+            //_kernelParser.RegistryKCBRundownEnd += obj => ProcessEvent(obj, RegistryTraceData, _regLogger);
+            //_kernelParser.RegistryVirtualize += obj => ProcessEvent(obj, RegistryTraceData, _regLogger);
+            //_kernelParser.RegistryClose += obj => ProcessEvent(obj, RegistryTraceData, _regLogger);
 
         }
 
@@ -381,28 +281,28 @@ namespace ETWLogger.Library
             var FileIOCreateTraceData = ConfigurationManager.AppSettings["FileIOCreateTraceData"];
             var FileIOSimpleOpTraceData = ConfigurationManager.AppSettings["FileIOSimpleOpTraceData"];
 
-            //_kernelParser.FileIOFSControl += obj => ProcessFileEvent(obj, FileIOInfoTraceData);
-            //_kernelParser.FileIODirEnum += obj => ProcessFileEvent(obj, FileIODirEnumTraceData);
-            //_kernelParser.FileIODirNotify += obj => ProcessFileEvent(obj, FileIODirEnumTraceData);
-            //_kernelParser.FileIOOperationEnd += obj => ProcessFileEvent(obj, FileIOOpEndTraceData);
-            _kernelParser.FileIORename += obj => ProcessFileEvent(obj, FileIOInfoTraceData);
-            _kernelParser.FileIODelete += obj => ProcessFileEvent(obj, FileIOInfoTraceData);
-            //_kernelParser.FileIOQueryInfo += obj => ProcessFileEvent(obj, FileIOInfoTraceData);
-            _kernelParser.FileIOWrite += obj => ProcessFileEvent(obj, FileIOReadWriteTraceData);
-            //_kernelParser.FileIOSetInfo += obj => ProcessFileEvent(obj, FileIOInfoTraceData);
-            _kernelParser.FileIOUnmapFile += obj => ProcessFileEvent(obj, MapFileTraceData);
-            _kernelParser.FileIOMapFileDCStart += obj => ProcessFileEvent(obj, MapFileTraceData);
-            _kernelParser.FileIOMapFile += obj => ProcessFileEvent(obj, MapFileTraceData);
-            //_kernelParser.FileIOName += obj => ProcessFileEvent(obj, FileIONameTraceData);
-            //_kernelParser.FileIOFileCreate += obj => ProcessFileEvent(obj, FileIONameTraceData);
-            //_kernelParser.FileIOFileDelete += obj => ProcessFileEvent(obj, FileIONameTraceData);
-            //_kernelParser.FileIOFileRundown += obj => ProcessFileEvent(obj, FileIONameTraceData);
-            _kernelParser.FileIOCreate += obj => ProcessFileEvent(obj, FileIOCreateTraceData);
-            //_kernelParser.FileIOCleanup += obj => ProcessFileEvent(obj, FileIOSimpleOpTraceData);
-            _kernelParser.FileIOClose += obj => ProcessFileEvent(obj, FileIOSimpleOpTraceData);
-            _kernelParser.FileIOFlush += obj => ProcessFileEvent(obj, FileIOSimpleOpTraceData);
-            _kernelParser.FileIORead += obj => ProcessFileEvent(obj, FileIOReadWriteTraceData);
-            _kernelParser.FileIOMapFileDCStop += obj => ProcessFileEvent(obj, MapFileTraceData);
+            //_kernelParser.FileIOFSControl += obj => ProcessEvent(obj, FileIOInfoTraceData, _fileLogger);
+            //_kernelParser.FileIODirEnum += obj => ProcessEvent(obj, FileIODirEnumTraceData, _fileLogger);
+            //_kernelParser.FileIODirNotify += obj => ProcessEvent(obj, FileIODirEnumTraceData, _fileLogger);
+            //_kernelParser.FileIOOperationEnd += obj => ProcessEvent(obj, FileIOOpEndTraceData, _fileLogger);
+            _kernelParser.FileIORename += obj => ProcessEvent(obj, FileIOInfoTraceData, _fileLogger);
+            _kernelParser.FileIODelete += obj => ProcessEvent(obj, FileIOInfoTraceData, _fileLogger);
+            //_kernelParser.FileIOQueryInfo += obj => ProcessEvent(obj, FileIOInfoTraceData, _fileLogger);
+            _kernelParser.FileIOWrite += obj => ProcessEvent(obj, FileIOReadWriteTraceData, _fileLogger);
+            //_kernelParser.FileIOSetInfo += obj => ProcessEvent(obj, FileIOInfoTraceData, _fileLogger);
+            _kernelParser.FileIOUnmapFile += obj => ProcessEvent(obj, MapFileTraceData, _fileLogger);
+            _kernelParser.FileIOMapFileDCStart += obj => ProcessEvent(obj, MapFileTraceData, _fileLogger);
+            _kernelParser.FileIOMapFile += obj => ProcessEvent(obj, MapFileTraceData, _fileLogger);
+            //_kernelParser.FileIOName += obj => ProcessEvent(obj, FileIONameTraceData, _fileLogger);
+            //_kernelParser.FileIOFileCreate += obj => ProcessEvent(obj, FileIONameTraceData, _fileLogger);
+            //_kernelParser.FileIOFileDelete += obj => ProcessEvent(obj, FileIONameTraceData, _fileLogger);
+            //_kernelParser.FileIOFileRundown += obj => ProcessEvent(obj, FileIONameTraceData, _fileLogger);
+            _kernelParser.FileIOCreate += obj => ProcessEvent(obj, FileIOCreateTraceData, _fileLogger);
+            //_kernelParser.FileIOCleanup += obj => ProcessEvent(obj, FileIOSimpleOpTraceData, _fileLogger);
+            _kernelParser.FileIOClose += obj => ProcessEvent(obj, FileIOSimpleOpTraceData, _fileLogger);
+            _kernelParser.FileIOFlush += obj => ProcessEvent(obj, FileIOSimpleOpTraceData, _fileLogger);
+            _kernelParser.FileIORead += obj => ProcessEvent(obj, FileIOReadWriteTraceData, _fileLogger);
+            _kernelParser.FileIOMapFileDCStop += obj => ProcessEvent(obj, MapFileTraceData, _fileLogger);
         }
 
         #endregion
