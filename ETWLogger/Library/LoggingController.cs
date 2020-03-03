@@ -6,6 +6,7 @@ using NLog;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -41,11 +42,16 @@ namespace ETWLogger.Library
 
         private readonly CustomEventFilter _filter;
 
+        private int _selfProcessId;
+
         public LoggingController()
         {
             try
             {
+                _selfProcessId = Process.GetCurrentProcess().Id;
 
+                _logger.Info("Process is not logging own actions by rejecting evetns with processID=" + _selfProcessId);
+                    
                 _logger.Info("Initialising the ETWEngine Class.");
                 _kernelSession = new TraceEventSession(KernelTraceEventParser.KernelSessionName, TraceEventSessionOptions.NoRestartOnCreate)
                 {
@@ -126,7 +132,7 @@ namespace ETWLogger.Library
         {
             try
             {
-                if (data.ProcessName == "ETWLogger")
+                if (data.ProcessID == _selfProcessId)
                 {
                     return;
                 }
@@ -156,7 +162,7 @@ namespace ETWLogger.Library
         {
             try
             {
-                if (data.ProcessName == "ETWLogger")
+                if (data.ProcessID == _selfProcessId)
                 {
                     return;
                 }
@@ -187,7 +193,7 @@ namespace ETWLogger.Library
         {
             try
             {
-                if (data.ProcessName == "ETWLogger")
+                if (data.ProcessID == _selfProcessId)
                 {
                     return;
                 }
@@ -217,7 +223,7 @@ namespace ETWLogger.Library
         {
             try
             {
-                if (data.ProcessName == "ETWLogger")
+                if (data.ProcessID == _selfProcessId)
                 {
                     return;
                 }
