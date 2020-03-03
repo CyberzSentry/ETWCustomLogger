@@ -44,13 +44,30 @@ namespace ETWLogger.Library
 
         private int _selfProcessId;
 
+        private bool _rejectSelf;
+
         public LoggingController()
         {
             try
             {
                 _selfProcessId = Process.GetCurrentProcess().Id;
-
-                _logger.Info("Process is not logging own actions by rejecting evetns with processID=" + _selfProcessId);
+                if (Boolean.TryParse(ConfigurationManager.AppSettings["RejectSelf"], out _rejectSelf))
+                {
+                    if (_rejectSelf)
+                    {
+                        _logger.Info("Process is not logging own actions by rejecting evetns with processID=" + _selfProcessId);
+                    }
+                    else
+                    {
+                        _logger.Info("Process is logging own actions.");
+                    }
+                }
+                else
+                {
+                    _logger.Info("Could not determine \"RejectSelf\" configuration key. Logging own actions.");
+                    _rejectSelf = false;
+                }
+                
                     
                 _logger.Info("Initialising the ETWEngine Class.");
                 _kernelSession = new TraceEventSession(KernelTraceEventParser.KernelSessionName, TraceEventSessionOptions.NoRestartOnCreate)
@@ -134,7 +151,10 @@ namespace ETWLogger.Library
             {
                 if (data.ProcessID == _selfProcessId)
                 {
-                    return;
+                    if (_rejectSelf)
+                    {
+                        return;
+                    }
                 }
                 PropertyInfo[] property_infos = data.GetType().GetProperties();
 
@@ -164,7 +184,10 @@ namespace ETWLogger.Library
             {
                 if (data.ProcessID == _selfProcessId)
                 {
-                    return;
+                    if (_rejectSelf)
+                    {
+                        return;
+                    }
                 }
                 PropertyInfo[] property_infos = data.GetType().GetProperties();
 
@@ -195,7 +218,10 @@ namespace ETWLogger.Library
             {
                 if (data.ProcessID == _selfProcessId)
                 {
-                    return;
+                    if (_rejectSelf)
+                    {
+                        return;
+                    }
                 }
                 PropertyInfo[] property_infos = data.GetType().GetProperties();
 
@@ -225,7 +251,10 @@ namespace ETWLogger.Library
             {
                 if (data.ProcessID == _selfProcessId)
                 {
-                    return;
+                    if (_rejectSelf)
+                    {
+                        return;
+                    }
                 }
                 PropertyInfo[] property_infos = data.GetType().GetProperties();
 
