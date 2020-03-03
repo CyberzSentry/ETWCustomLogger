@@ -46,6 +46,8 @@ namespace ETWLogger.Library
 
         private bool _rejectSelf;
 
+        delegate void ProcessEventDelegate(TraceEvent data, string formatString, Logger logger);
+
         public LoggingController()
         {
             try
@@ -183,128 +185,129 @@ namespace ETWLogger.Library
 
         private void SetupProcessEvents()
         {
-            var ProcessTraceData = ConfigurationManager.AppSettings["ProcessTraceData"];
-
-            _kernelParser.ProcessStart += obj => ProcessEvent(obj, ProcessTraceData, _procLogger);
-            //_kernelParser.ProcessStop += obj => ProcessEvent(obj, ProcessTraceData, _procLogger);
-            _kernelParser.ProcessStartGroup += obj => ProcessEvent(obj, ProcessTraceData, _procLogger);
-            _kernelParser.ProcessDCStart += obj => ProcessEvent(obj, ProcessTraceData, _procLogger);
+            var events = _kernelParser.GetType().GetEvents();
+            var processEvents = ConfigurationManager.AppSettings["ProcessEvents"];
+            if (processEvents != null)
+            {
+                foreach (var x in events)
+                {
+                    if (processEvents.Contains(x.Name))
+                    {
+                        var eventTraceFormatString = ConfigurationManager.AppSettings[x.EventHandlerType.GenericTypeArguments[0].Name];
+                        if (eventTraceFormatString != null)
+                        {
+                            //ProcessEventDelegate deleg = ProcessEvent;
+                            _logger.Info("Subscribing to event " + x.Name + " with the parsing string \"" + eventTraceFormatString + "\"");
+                            Action<TraceEvent> handler = obj => ProcessEvent(obj, eventTraceFormatString, _procLogger);
+                            Delegate convertedHandler = Delegate.CreateDelegate(x.EventHandlerType, handler.Target, handler.Method);
+                            x.AddEventHandler(_kernelParser, convertedHandler);
+                        }
+                        else
+                        {
+                            _logger.Info("Parsing string for " + x.EventHandlerType.GenericTypeArguments[0].Name + " not found. " + x.Name + " event not subscribed");
+                        }
+                    }
+                }
+            }
+            else
+            {
+                _logger.Info("Process events not configured. Subscription aborted.");
+            }
         }
 
         private void SetupNetworkEvents()
         {
-            var TcpIpV6ConnectTraceData = ConfigurationManager.AppSettings["TcpIpV6ConnectTraceData"];
-            var UdpIpTraceData = ConfigurationManager.AppSettings["UdpIpTraceData"];
-            var UdpIpFailTraceData = ConfigurationManager.AppSettings["UdpIpFailTraceData"];
-            var UpdIpV6TraceData = ConfigurationManager.AppSettings["UpdIpV6TraceData"];
-            var TcpIpSendTraceData = ConfigurationManager.AppSettings["TcpIpSendTraceData"];
-            var TcpIpTraceData = ConfigurationManager.AppSettings["TcpIpTraceData"];
-            var TcpIpConnectTraceData = ConfigurationManager.AppSettings["TcpIpConnectTraceData"];
-            var TcpIpFailTraceData = ConfigurationManager.AppSettings["TcpIpFailTraceData"];
-            var TcpIpV6SendTraceData = ConfigurationManager.AppSettings["TcpIpV6SendTraceData"];
-            var TcpIpV6TraceData = ConfigurationManager.AppSettings["TcpIpV6TraceData"];
-
             var events = _kernelParser.GetType().GetEvents();
-
-            _kernelParser.TcpIpAcceptIPV6 += obj => ProcessEvent(obj, TcpIpV6ConnectTraceData, _netLogger);
-            _kernelParser.TcpIpAccept += obj => ProcessEvent(obj, TcpIpConnectTraceData, _netLogger);
-
-            _kernelParser.TcpIpConnectIPV6 += obj => ProcessEvent(obj, TcpIpV6ConnectTraceData, _netLogger);
-            _kernelParser.TcpIpConnect += obj => ProcessEvent(obj, TcpIpConnectTraceData, _netLogger);
-
-            _kernelParser.TcpIpDisconnectIPV6 += obj => ProcessEvent(obj, TcpIpV6TraceData, _netLogger);
-            _kernelParser.TcpIpDisconnect += obj => ProcessEvent(obj, TcpIpTraceData, _netLogger);
-            
-            _kernelParser.TcpIpSendIPV6 += obj => ProcessEvent(obj, TcpIpV6SendTraceData, _netLogger);
-            _kernelParser.TcpIpSend += obj => ProcessEvent(obj, TcpIpSendTraceData, _netLogger);
-
-            _kernelParser.TcpIpRecvIPV6 += obj => ProcessEvent(obj, TcpIpV6TraceData, _netLogger);
-            _kernelParser.TcpIpRecv += obj => ProcessEvent(obj, TcpIpTraceData, _netLogger);
-
-            _kernelParser.TcpIpTCPCopyIPV6 += obj => ProcessEvent(obj, TcpIpV6TraceData, _netLogger);
-            _kernelParser.TcpIpTCPCopy += obj => ProcessEvent(obj, TcpIpTraceData, _netLogger);
-
-            _kernelParser.TcpIpRetransmitIPV6 += obj => ProcessEvent(obj, TcpIpV6TraceData, _netLogger);
-            _kernelParser.TcpIpRetransmit += obj => ProcessEvent(obj, TcpIpTraceData, _netLogger);
-
-            //_kernelParser.TcpIpARPCopy += obj => ProcessEvent(obj, TcpIpTraceData, _netLogger);
-            //_kernelParser.TcpIpFullACK += obj => ProcessEvent(obj, TcpIpTraceData, _netLogger);
-            //_kernelParser.TcpIpPartACK += obj => ProcessEvent(obj, TcpIpTraceData, _netLogger);
-            //_kernelParser.TcpIpDupACK += obj => ProcessEvent(obj, TcpIpTraceData, _netLogger);
-
-            _kernelParser.TcpIpReconnectIPV6 += obj => ProcessEvent(obj, TcpIpV6TraceData, _netLogger);
-            _kernelParser.TcpIpReconnect += obj => ProcessEvent(obj, TcpIpTraceData, _netLogger);
-
-            _kernelParser.TcpIpFail += obj => ProcessEvent(obj, TcpIpFailTraceData, _netLogger);
-        
-            _kernelParser.UdpIpSendIPV6 += obj => ProcessEvent(obj, UpdIpV6TraceData, _netLogger);
-            _kernelParser.UdpIpSend += obj => ProcessEvent(obj, UdpIpTraceData, _netLogger);
-
-            _kernelParser.UdpIpRecvIPV6 += obj => ProcessEvent(obj, UpdIpV6TraceData, _netLogger);
-            _kernelParser.UdpIpRecv += obj => ProcessEvent(obj, UdpIpTraceData, _netLogger);
-
-            _kernelParser.UdpIpFail += obj => ProcessEvent(obj, UdpIpFailTraceData, _netLogger);
-
+            var networkEvents = ConfigurationManager.AppSettings["NetworkEvents"];
+            if (networkEvents != null)
+            {
+                foreach (var x in events)
+                {
+                    if (networkEvents.Contains(x.Name))
+                    {
+                        var eventTraceFormatString = ConfigurationManager.AppSettings[x.EventHandlerType.GenericTypeArguments[0].Name];
+                        if(eventTraceFormatString != null){
+                            //ProcessEventDelegate deleg = ProcessEvent;
+                            _logger.Info("Subscribing to event " + x.Name + " with the parsing string \"" + eventTraceFormatString + "\"");
+                            Action<TraceEvent> handler = obj => ProcessEvent(obj, eventTraceFormatString, _netLogger);
+                            Delegate convertedHandler = Delegate.CreateDelegate(x.EventHandlerType, handler.Target, handler.Method);
+                            x.AddEventHandler(_kernelParser, convertedHandler);
+                        }
+                        else
+                        {
+                            _logger.Info("Parsing string for " + x.EventHandlerType.GenericTypeArguments[0].Name + " not found. " + x.Name + " event not subscribed");
+                        }
+                    }
+                }
+            }
+            else
+            {
+                _logger.Info("Network events not configured. Subscription aborted.");
+            }
         }
 
         private void SetupRegistryEvents()
         {
-            var RegistryTraceData = ConfigurationManager.AppSettings["RegistryTraceData"];
-
-            _kernelParser.RegistryCreate += obj => ProcessEvent(obj, RegistryTraceData, _regLogger);
-            _kernelParser.RegistryOpen += obj => ProcessEvent(obj, RegistryTraceData, _regLogger);
-            _kernelParser.RegistryDelete += obj => ProcessEvent(obj, RegistryTraceData, _regLogger);
-            _kernelParser.RegistryQuery += obj => ProcessEvent(obj, RegistryTraceData, _regLogger);
-            _kernelParser.RegistrySetValue += obj => ProcessEvent(obj, RegistryTraceData, _regLogger);
-            _kernelParser.RegistryDeleteValue += obj => ProcessEvent(obj, RegistryTraceData, _regLogger);
-            _kernelParser.RegistryQueryValue += obj => ProcessEvent(obj, RegistryTraceData, _regLogger);
-            _kernelParser.RegistryEnumerateKey += obj => ProcessEvent(obj, RegistryTraceData, _regLogger);
-            _kernelParser.RegistryQueryMultipleValue += obj => ProcessEvent(obj, RegistryTraceData, _regLogger);
-            _kernelParser.RegistryEnumerateValueKey += obj => ProcessEvent(obj, RegistryTraceData, _regLogger);
-            //_kernelParser.RegistryFlush += obj => ProcessEvent(obj, RegistryTraceData, _regLogger);
-            //_kernelParser.RegistrySetInformation += obj => ProcessEvent(obj, RegistryTraceData, _regLogger);
-            //_kernelParser.RegistryKCBCreate += obj => ProcessEvent(obj, RegistryTraceData, _regLogger);
-            //_kernelParser.RegistryKCBDelete += obj => ProcessEvent(obj, RegistryTraceData, _regLogger);
-            //_kernelParser.RegistryKCBRundownBegin += obj => ProcessEvent(obj, RegistryTraceData, _regLogger);
-            //_kernelParser.RegistryKCBRundownEnd += obj => ProcessEvent(obj, RegistryTraceData, _regLogger);
-            //_kernelParser.RegistryVirtualize += obj => ProcessEvent(obj, RegistryTraceData, _regLogger);
-            //_kernelParser.RegistryClose += obj => ProcessEvent(obj, RegistryTraceData, _regLogger);
-
+            var events = _kernelParser.GetType().GetEvents();
+            var registryEvents = ConfigurationManager.AppSettings["RegistryEvents"];
+            if (registryEvents != null)
+            {
+                foreach (var x in events)
+                {
+                    if (registryEvents.Contains(x.Name))
+                    {
+                        var eventTraceFormatString = ConfigurationManager.AppSettings[x.EventHandlerType.GenericTypeArguments[0].Name];
+                        if (eventTraceFormatString != null)
+                        {
+                            //ProcessEventDelegate deleg = ProcessEvent;
+                            _logger.Info("Subscribing to event " + x.Name + " with the parsing string \"" + eventTraceFormatString + "\"");
+                            Action<TraceEvent> handler = obj => ProcessEvent(obj, eventTraceFormatString, _regLogger);
+                            Delegate convertedHandler = Delegate.CreateDelegate(x.EventHandlerType, handler.Target, handler.Method);
+                            x.AddEventHandler(_kernelParser, convertedHandler);
+                        }
+                        else
+                        {
+                            _logger.Info("Parsing string for " + x.EventHandlerType.GenericTypeArguments[0].Name + " not found. " + x.Name + " event not subscribed");
+                        }
+                    }
+                }
+            }
+            else
+            {
+                _logger.Info("Registry events not configured. Subscription aborted.");
+            }
         }
 
         private void SetupFileEvents()
         {
-            var FileIOInfoTraceData = ConfigurationManager.AppSettings["FileIOInfoTraceData"];
-            var FileIODirEnumTraceData = ConfigurationManager.AppSettings["FileIODirEnumTraceData"];
-            var FileIOOpEndTraceData = ConfigurationManager.AppSettings["FileIOOpEndTraceData"];
-            var FileIOReadWriteTraceData = ConfigurationManager.AppSettings["FileIOReadWriteTraceData"];
-            var MapFileTraceData = ConfigurationManager.AppSettings["MapFileTraceData"];
-            var FileIONameTraceData = ConfigurationManager.AppSettings["FileIONameTraceData"];
-            var FileIOCreateTraceData = ConfigurationManager.AppSettings["FileIOCreateTraceData"];
-            var FileIOSimpleOpTraceData = ConfigurationManager.AppSettings["FileIOSimpleOpTraceData"];
-
-            //_kernelParser.FileIOFSControl += obj => ProcessEvent(obj, FileIOInfoTraceData, _fileLogger);
-            //_kernelParser.FileIODirEnum += obj => ProcessEvent(obj, FileIODirEnumTraceData, _fileLogger);
-            //_kernelParser.FileIODirNotify += obj => ProcessEvent(obj, FileIODirEnumTraceData, _fileLogger);
-            //_kernelParser.FileIOOperationEnd += obj => ProcessEvent(obj, FileIOOpEndTraceData, _fileLogger);
-            _kernelParser.FileIORename += obj => ProcessEvent(obj, FileIOInfoTraceData, _fileLogger);
-            _kernelParser.FileIODelete += obj => ProcessEvent(obj, FileIOInfoTraceData, _fileLogger);
-            //_kernelParser.FileIOQueryInfo += obj => ProcessEvent(obj, FileIOInfoTraceData, _fileLogger);
-            _kernelParser.FileIOWrite += obj => ProcessEvent(obj, FileIOReadWriteTraceData, _fileLogger);
-            //_kernelParser.FileIOSetInfo += obj => ProcessEvent(obj, FileIOInfoTraceData, _fileLogger);
-            _kernelParser.FileIOUnmapFile += obj => ProcessEvent(obj, MapFileTraceData, _fileLogger);
-            _kernelParser.FileIOMapFileDCStart += obj => ProcessEvent(obj, MapFileTraceData, _fileLogger);
-            _kernelParser.FileIOMapFile += obj => ProcessEvent(obj, MapFileTraceData, _fileLogger);
-            //_kernelParser.FileIOName += obj => ProcessEvent(obj, FileIONameTraceData, _fileLogger);
-            //_kernelParser.FileIOFileCreate += obj => ProcessEvent(obj, FileIONameTraceData, _fileLogger);
-            //_kernelParser.FileIOFileDelete += obj => ProcessEvent(obj, FileIONameTraceData, _fileLogger);
-            //_kernelParser.FileIOFileRundown += obj => ProcessEvent(obj, FileIONameTraceData, _fileLogger);
-            _kernelParser.FileIOCreate += obj => ProcessEvent(obj, FileIOCreateTraceData, _fileLogger);
-            //_kernelParser.FileIOCleanup += obj => ProcessEvent(obj, FileIOSimpleOpTraceData, _fileLogger);
-            _kernelParser.FileIOClose += obj => ProcessEvent(obj, FileIOSimpleOpTraceData, _fileLogger);
-            _kernelParser.FileIOFlush += obj => ProcessEvent(obj, FileIOSimpleOpTraceData, _fileLogger);
-            _kernelParser.FileIORead += obj => ProcessEvent(obj, FileIOReadWriteTraceData, _fileLogger);
-            _kernelParser.FileIOMapFileDCStop += obj => ProcessEvent(obj, MapFileTraceData, _fileLogger);
+            var events = _kernelParser.GetType().GetEvents();
+            var fileEvents = ConfigurationManager.AppSettings["FileEvents"];
+            if (fileEvents != null)
+            {
+                foreach (var x in events)
+                {
+                    if (fileEvents.Contains(x.Name))
+                    {
+                        var eventTraceFormatString = ConfigurationManager.AppSettings[x.EventHandlerType.GenericTypeArguments[0].Name];
+                        if (eventTraceFormatString != null)
+                        {
+                            //ProcessEventDelegate deleg = ProcessEvent;
+                            _logger.Info("Subscribing to event " + x.Name + " with the parsing string \"" + eventTraceFormatString + "\"");
+                            Action<TraceEvent> handler = obj => ProcessEvent(obj, eventTraceFormatString, _fileLogger);
+                            Delegate convertedHandler = Delegate.CreateDelegate(x.EventHandlerType, handler.Target, handler.Method);
+                            x.AddEventHandler(_kernelParser, convertedHandler);
+                        }
+                        else
+                        {
+                            _logger.Info("Parsing string for " + x.EventHandlerType.GenericTypeArguments[0].Name + " not found. " + x.Name + " event not subscribed");
+                        }
+                    }
+                }
+            }
+            else
+            {
+                _logger.Info("File events not configured. Subscription aborted.");
+            }
         }
 
         #endregion
