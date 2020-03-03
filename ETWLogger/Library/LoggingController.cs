@@ -185,10 +185,10 @@ namespace ETWLogger.Library
         {
             var ProcessTraceData = ConfigurationManager.AppSettings["ProcessTraceData"];
 
-            _kernelParser.ProcessStart += obj => ProcessEvent(obj, ProcessTraceData, _regLogger);
-            //_kernelParser.ProcessStop += obj => ProcessEvent(obj, ProcessTraceData, _regLogger);
-            _kernelParser.ProcessStartGroup += obj => ProcessEvent(obj, ProcessTraceData, _regLogger);
-            _kernelParser.ProcessDCStart += obj => ProcessEvent(obj, ProcessTraceData, _regLogger);
+            _kernelParser.ProcessStart += obj => ProcessEvent(obj, ProcessTraceData, _procLogger);
+            //_kernelParser.ProcessStop += obj => ProcessEvent(obj, ProcessTraceData, _procLogger);
+            _kernelParser.ProcessStartGroup += obj => ProcessEvent(obj, ProcessTraceData, _procLogger);
+            _kernelParser.ProcessDCStart += obj => ProcessEvent(obj, ProcessTraceData, _procLogger);
         }
 
         private void SetupNetworkEvents()
@@ -203,6 +203,8 @@ namespace ETWLogger.Library
             var TcpIpFailTraceData = ConfigurationManager.AppSettings["TcpIpFailTraceData"];
             var TcpIpV6SendTraceData = ConfigurationManager.AppSettings["TcpIpV6SendTraceData"];
             var TcpIpV6TraceData = ConfigurationManager.AppSettings["TcpIpV6TraceData"];
+
+            var events = _kernelParser.GetType().GetEvents();
 
             _kernelParser.TcpIpAcceptIPV6 += obj => ProcessEvent(obj, TcpIpV6ConnectTraceData, _netLogger);
             _kernelParser.TcpIpAccept += obj => ProcessEvent(obj, TcpIpConnectTraceData, _netLogger);
